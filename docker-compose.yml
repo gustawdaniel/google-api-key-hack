@@ -1,12 +1,44 @@
 services:
   mongodb:
-    image: mongo:latest
-    container_name: mongodb-hack
+    image: mongo:6.0
     ports:
       - "27017:27017"
     volumes:
-      - mongodb_data:/data/db
-    restart: always
+      - ./mongodb_data:/data/db
 
-volumes:
-  mongodb_data:
+  crawler:
+    build: .
+    entrypoint: python crawler.py
+    depends_on:
+      - mongodb
+      - dashboard
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - DASHBOARD_API=http://dashboard:8000/events
+
+  worker:
+    build: .
+    entrypoint: python downloader.py
+    deploy:
+      replicas: 1
+    depends_on:
+      - mongodb
+      - dashboard
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - DASHBOARD_API=http://dashboard:8000/events
+    volumes:
+      - ./apps:/app/apps
+
+  dashboard:
+    build: .
+    entrypoint: uvicorn dashboard_server:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000" # API & WS
+    depends_on:
+      - mongodb
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - HOST_IP=127.0.0.1
+
+

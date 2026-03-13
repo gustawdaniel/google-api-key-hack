@@ -3,7 +3,7 @@ import hashlib
 import time
 from pathlib import Path
 from pymongo import MongoClient
-from core import run_scanner_core, C
+from core import run_scanner_core, C, mask_key
 
 def get_file_hash(filepath: Path) -> str:
     h = hashlib.sha256()
@@ -25,7 +25,6 @@ def main():
     for fpath in files:
         fhash = get_file_hash(fpath)
         if db.scans.find_one({"hash": fhash}):
-            print(f"  {C.Y}SKIP{C.END} | {fpath.name}")
             continue
 
         print(f"  {C.C}SCAN{C.END} | {C.BOLD}{fpath.name}{C.END}...", end="", flush=True)
@@ -39,6 +38,18 @@ def main():
             count = len(res)
             if count > 0:
                 print(f" \r  {C.G}HIT {C.END} | {C.BOLD}{fpath.name}{C.END} -> {C.G}{count} keys found!{C.END}")
+                for r_info in res:
+                    k = r_info.get("key", "")
+                    w_count = r_info.get("working_count", 0)
+                    tests = r_info.get("results", [])
+                    if w_count > 0:
+                        print(f"    {C.H}{'-'*50}{C.END}")
+                        print(f"    {C.BOLD}VULNERABLE KEY: {mask_key(k)}{C.END}")
+                        print(f"    {C.H}{'-'*50}{C.END}")
+                        for name, verdict, detail in tests:
+                            if verdict == "WORKING":
+                                print(f"      {C.G}{name.ljust(20)} → {verdict.ljust(15)} {detail}{C.END}")
+                        print(f"\n      → {w_count}/8 working\n")
             else:
                 print(f" \r  {C.R}NONE{C.END} | {C.BOLD}{fpath.name}{C.END} -> No vulnerabilities found.")
         except Exception as e:

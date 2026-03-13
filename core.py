@@ -22,7 +22,7 @@ except:
     C = type('C', (), {k: '' for k in 'H B G Y R C W END BOLD'.split()})()
 
 # --- Configuration ---
-GOOGLE_KEY_REGEX = rb'(?<![\w-])AIza[0-9A-Za-z_-]{35}(?![\w-])'
+GOOGLE_KEY_REGEX = rb'AIza[0-9A-Za-z_-]{35}'
 
 # --- Key masking ---
 def mask_key(key: str, visible_chars: int = 8) -> str:

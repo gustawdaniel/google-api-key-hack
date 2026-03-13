@@ -1,71 +1,58 @@
 # Google API Key Hunter & Validator
 
-A comprehensive toolkit for extracting and verifying Google API keys from Android application packages (APK, AAB, XAPK, and APKM). Designed for efficiency, automation, and research.
+High-performance, automated pipeline for extracting and validating Google Maps platform API keys from Android packages (APK, XAPK, APKM, AAB). Built for scale and research.
 
-## 🛠 Features
+![Dashboard](./docs/dashboard.png)
+![Scan](./docs/scan.png)
 
-The project is built on a modular architecture to allow both focused manual scans and large-scale automated discovery.
+## 🏗️ Architecture Stack
 
-### 1. [core.py](file:///home/daniel/pro/google-api-key-hack/core.py)
-The engine of the project. It centralizes all core logic:
-- **Smart Extraction**: Uses optimized regex and deep archive traversal (supporting nested APKs in XAPK/APKM).
-- **Comprehensive Testing**: Validates keys against multiple Google Maps Platform endpoints (Places New, Geocoding, Directions, Static Maps, etc.).
-- **Response Analysis**: Decodes error messages to identify specific causes (billing required, API disabled, IP restrictions, etc.).
-- **Security**: Automatically masks sensitive API keys in console output.
+Robust microservices architecture managed by `docker-compose`.
 
-### 2. [apk_grok.py](file:///home/daniel/pro/google-api-key-hack/apk_grok.py)
-A focused CLI wrapper for `core.py`:
-- **Manual Mode**: Ideal for scanning single files or specific paths.
-- **Multithreading**: Fast validation of multiple keys found within a single app.
-- **Rich Output**: Detailed breakdown of which services are enabled for a found key.
+- **MongoDB**: Central state, job queues, and scan matrices. Mounted to `./mongodb_data` on host for complete persistence across container rebuilds.
+- **Dashboard (FastAPI + Svelte)**: Real-time UI at `http://localhost:8000`. WebSocket logs, dynamic vulnerability grids, and rate-throttle bypass toggles.
+- **Crawler**: Scrapes APKPure (via `cloudscraper`), dynamically rotating search queries to discover and enqueue new targets.
+- **Worker(s)**: Scalable async downloaders handling HTTP 429 backoffs. Spawns the extraction engine on success.
+- **Core Engine**: `regex`-optimized archive traversal yielding keys aggressively validated against multiple Maps endpoints.
 
-### 3. [apk.scan.py](file:///home/daniel/pro/google-api-key-hack/apk.scan.py)
-The automated automation hub with **MongoDB** integration:
-- **Differential Scanning**: Calculates SHA256 hashes for all files in the `apps/` directory. It only scans new or modified files.
-- **Persistent Storage**: Saves all findings, hashes, and validation results into a local MongoDB instance.
-- **Hacker UI**: Features a high-visibility terminal interface with color-coded results (HIT/NONE/SKIP).
+## 🚀 Quick Start
 
-### 4. [apk_getter.py](file:///home/daniel/pro/google-api-key-hack/apk_getter.py)
-Automated APK discovery tool:
-- **Targeting**: Scrapes **APKPure** for trending or specific query results.
-- **Bypass**: Uses `cloudscraper` to navigate around bot protections.
-- **Automation**: Populates your `apps/` directory with fresh targets for scanning.
-
-## 🗄️ Database Setup (MongoDB)
-
-The project uses a local MongoDB container for persistent storage.
+Spin up the entire cluster:
 
 ```bash
-docker-compose up -d
+docker-compose up -d --build
+# Open the Dashboard: http://localhost:8000
 ```
 
-## 🚀 Installation
+---
 
-Ensure you have Python 3.8+ installed.
+## 🛠️ CLI Operations
+
+While Docker handles distributed scanning and the dashboard UI, local Python CLI tools provide immediate utility for specific workflows.
+
+### Batch Scanning (`apk.scan.py`)
+The automated hub for scanning local directories. Differentially scans new files in `./apps/` (by hashing), tests keys, and saves results to MongoDB with a high-visibility terminal UI. **This is the primary script for local operations.**
+
+![Keys](./docs/keys.png)
 
 ```bash
-pip install requests colorama pymongo cloudscraper beautifulsoup4
-```
-
-## 📋 Usage Examples
-
-### Fetch New Apps
-```bash
-# Download 10 latest apps related to "weather"
-python apk_getter.py --query "weather" --limit 10
-```
-
-### Run Automated Scan
-```bash
-# Processes everything in apps/ and saves to MongoDB
+# Scan everything in ./apps/
 python apk.scan.py
 ```
 
-### Manual Individual Scan
+### Focused Single-App Inspection (`apk_grok.py`)
+Deep-dive into a single target file to grab its payload test results instantly.
+
 ```bash
 python apk_grok.py path/to/app.apk
 ```
 
-## ⚠️ Disclaimer
+### Headless Web Spider (`apk_getter.py`)
+If you don't run the Docker stack, fetch targets manually.
 
-This tool is for educational purposes and authorized security research only. Using discovered API keys without permission is illegal and unethical. The authors are not responsible for any misuse of this tool.
+```bash
+python apk_getter.py --query "weather" --limit 10
+```
+
+## ⚠️ Disclaimer
+Educational use and authorized security research only. Using discovered API keys without permission is illegal and unethical. The authors are not responsible for any misuse.

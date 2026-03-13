@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+.git
+.gitignore
+SECRET.md
+__pycache__
+apps/
+downloads/
+mongodb_data/
