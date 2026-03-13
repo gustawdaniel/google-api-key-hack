@@ -1,23 +1,23 @@
-# Google API Key Hunter & Validator
+# Android Credential Exposure Scanner
 
-High-performance, automated pipeline for extracting and validating Google Maps platform API keys from Android packages (APK, XAPK, APKM, AAB). Built for scale and research.
+A security tool for researchers and developers to detect accidentally embedded Google Maps API keys in Android packages (APK, XAPK, APKM, AAB) and evaluate their exposure risk.
 
 ![Dashboard](./docs/dashboard.png)
 ![Scan](./docs/scan.png)
 
-## 🏗️ Architecture Stack
+## 🛡️ Security Analysis Pipeline
 
-Robust microservices architecture managed by `docker-compose`.
+The analyzer runs on a scalable microservices architecture managed by `docker-compose`.
 
-- **MongoDB**: Central state, job queues, and scan matrices. Mounted to `./mongodb_data` on host for complete persistence across container rebuilds.
-- **Dashboard (FastAPI + Svelte)**: Real-time UI at `http://localhost:8000`. WebSocket logs, dynamic vulnerability grids, and rate-throttle bypass toggles.
-- **Crawler**: Scrapes APKPure (via `cloudscraper`), dynamically rotating search queries to discover and enqueue new targets.
-- **Worker(s)**: Scalable async downloaders handling HTTP 429 backoffs. Spawns the extraction engine on success.
-- **Core Engine**: `regex`-optimized archive traversal yielding keys aggressively validated against multiple Maps endpoints.
+- **MongoDB**: Central state for analysis queues and exposure matrices. Mounted to `./mongodb_data` on host for complete persistence of security records.
+- **Dashboard (FastAPI + Svelte)**: Real-time UI at `http://localhost:8000` to visualize log streams, credential exposure metrics, and endpoint vulnerability grids. Features a Privacy Mode to censor target packages during public disclosure or presentations.
+- **Discovery Module**: An optional scraping worker (`cloudscraper`) to discover publicly available Android packages for evaluating large-scale API exposure trends.
+- **Queue Workers**: Scalable async downloaders handling HTTP backoffs and spawning the extraction engine.
+- **Analysis Engine**: Deep archive traversal utilizing optimized regex to identify potentially exposed strings, followed by safe verification of their permissions against Maps platform endpoints.
 
-## 🚀 Quick Start
+## 🚀 Deployment
 
-Spin up the entire cluster:
+Spin up the entire analysis cluster:
 
 ```bash
 docker-compose up -d --build
@@ -26,33 +26,37 @@ docker-compose up -d --build
 
 ---
 
-## 🛠️ CLI Operations
+## 🛠️ Local Analysis Tools
 
-While Docker handles distributed scanning and the dashboard UI, local Python CLI tools provide immediate utility for specific workflows.
+While Docker manages the distributed pipeline, local Python CLI tools provide immediate utility for focused security workflows.
 
 ### Batch Scanning (`apk.scan.py`)
-The automated hub for scanning local directories. Differentially scans new files in `./apps/` (by hashing), tests keys, and saves results to MongoDB with a high-visibility terminal UI. **This is the primary script for local operations.**
+The automated hub for scanning local directories. Differentially scans new packages in `./apps/` (by hashing), tests credential privileges, and stores exposure results in MongoDB with high-visibility terminal logging. **This is the primary script for local operations.**
 
 ![Keys](./docs/keys.png)
 
 ```bash
-# Scan everything in ./apps/
+# Analyze all packages in ./apps/
 python apk.scan.py
 ```
 
-### Focused Single-App Inspection (`apk_grok.py`)
-Deep-dive into a single target file to grab its payload test results instantly.
+### Focused Inspection (`apk_grok.py`)
+Deep-dive into a single target payload to instantly evaluate its credential exposure without utilizing the database.
 
 ```bash
 python apk_grok.py path/to/app.apk
 ```
 
 ### Headless Web Spider (`apk_getter.py`)
-If you don't run the Docker stack, fetch targets manually.
+If you don't run the Docker stack, fetch analysis targets manually.
 
 ```bash
 python apk_getter.py --query "weather" --limit 10
 ```
 
-## ⚠️ Disclaimer
-Educational use and authorized security research only. Using discovered API keys without permission is illegal and unethical. The authors are not responsible for any misuse.
+## ⚖️ Ethics & Responsible Disclosure
+
+This tool is strictly intended for educational purposes and authorized security research:
+- It is designed to evaluate exposure risk, not to exploit or harvest credentials for unauthorized activities.
+- **Responsible Disclosure:** If a valid, high-privilege key is discovered in a publicly available application, researchers should proactively notify the application developer or Google through official responsible disclosure programs.
+- The authors are not responsible for any misuse of this tool. Use entirely at your own risk.
